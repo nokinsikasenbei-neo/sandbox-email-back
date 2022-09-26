@@ -4,8 +4,8 @@
 ## 起動方法
 
 ```
-$ git clone https://github.com/nokinsikasenbei-neo/sandbox-email.git
-$ cd sandbox-email/backend
+$ git clone https://github.com/nokinsikasenbei-neo/sandbox-email-back.git
+$ cd sandbox-email-back
 $ docker-compose up -d --build
 ```
 
