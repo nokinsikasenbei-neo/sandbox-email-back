@@ -34,12 +34,7 @@ def get_service():
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', SCOPES)
-                creds = flow.run_local_server(port=8001)
-            # Save the credentials for the next run
-            with open('token.json', 'w') as token:
-                token.write(creds.to_json())
+                return None
         service = build('gmail', 'v1', credentials=creds)
         return service
     except Exception as e:
@@ -103,14 +98,6 @@ def get_mesage_list(service, user_id: str = 'me'):
         # TODO(developer) - Handle errors from gmail API.
         print(f'An error occurred: {error}')
 
-@app.post("/authorize", tags=['Get Messages List'])
-def authorize():
-    service = get_service()
-    if service != None:
-        return JSONResponse(status_code=200)
-    else:
-        return JSONResponse(status_code=500)
-
 @app.get("/messages", tags=['Get Messages List'])
 def receive_email():
     """
@@ -126,23 +113,16 @@ def receive_email():
     - file: 添付ファイル
     
     """
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-        
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            return JSONResponse(status_code=400, content={'message': 'log in first.'})
-    
     try:
         service = get_service()
+        if service == None:
+            return JSONResponse(status_code=400, content={'message': 'please issue oauth token.'})
         messages = get_mesage_list(service)
         response_json = {"messages": messages}
         return JSONResponse(status_code=200, content=response_json)
     except Exception as e:
         print(e)
-        return JSONResponse(status_code=500)
+        return JSONResponse(status_code=500, content={'message': 'internal server error.'})
 
 @app.post("/messages/send", tags=['Send Message'])
 def send_email(raw: str, file: UploadFile = File(...)):
