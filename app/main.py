@@ -14,6 +14,7 @@ from googleapiclient.errors import HttpError
 
 app = FastAPI()
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+FILE_STORAGE = './storage/'
 
 """
 サンドボックス環境で添付ファイルを展開する
@@ -74,7 +75,7 @@ def get_mesage_list(service, user_id: str = 'me'):
                         att=service.users().messages().attachments().get(userId=user_id, messageId=message_id,id=att_id).execute()
                         data=att['data']
                     file_data = base64.urlsafe_b64decode(data.encode('utf-8'))
-                    path = part['filename']
+                    path = FILE_STORAGE + part['filename']
                     
                     with open(path, 'wb') as f:
                         f.write(file_data)
