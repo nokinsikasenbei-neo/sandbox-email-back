@@ -11,3 +11,15 @@ services:
     volumes:
       - ./app:/app
     restart: always
+  
+  sandbox:
+    tty: true
+    build:
+      context: ./sandbox
+      dockerfile: Dockerfile
+    ports:
+      - 6080:80
+    volumes:
+      - /dev/shm:/dev/shm
+    restart: always
+    
