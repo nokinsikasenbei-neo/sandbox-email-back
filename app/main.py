@@ -64,40 +64,49 @@ def get_mesage_list(service, user_id: str = 'me'):
                     
             message['body'] = ""
             message['attachment'] = ""
-            for part in message_detail['payload']['parts']:
-                # ファイルが添付されている場合の処理
-                if part['filename']:
-                    message['attachment'] = part['filename']
-                    if 'data' in part['body']:
-                        data=part['body']['data']
-                    else:
-                        att_id=part['body']['attachmentId']
-                        att=service.users().messages().attachments().get(userId=user_id, messageId=message_id,id=att_id).execute()
-                        data=att['data']
-                    file_data = base64.urlsafe_b64decode(data.encode('utf-8'))
-                    path = FILE_STORAGE + part['filename']
-                    
-                    with open(path, 'wb') as f:
-                        f.write(file_data)
-             
-                if part['mimeType'] == 'multipart/alternative':
-                    for ppart in part['parts']:
-                        if 'data' in ppart['body']:
+            
+            if message_detail['payload'].get('parts') != None:
+                for part in message_detail['payload']['parts']:
+                    # ファイルが添付されている場合の処理
+                    if part['filename']:
+                        message['attachment'] = part['filename']
+                        if 'data' in part['body']:
+                            data=part['body']['data']
+                        else:
+                            att_id=part['body']['attachmentId']
+                            att=service.users().messages().attachments().get(userId=user_id, messageId=message_id,id=att_id).execute()
+                            data=att['data']
+                        file_data = base64.urlsafe_b64decode(data.encode('utf-8'))
+                        path = FILE_STORAGE + part['filename']
+                        
+                        with open(path, 'wb') as f:
+                            f.write(file_data)
+                
+                    if part['mimeType'] == 'multipart/alternative':
+                        for ppart in part['parts']:
+                            if 'data' in ppart['body']:
+                                decoded_bytes = base64.urlsafe_b64decode(
+                                    ppart['body']['data'])
+                                decoded_message = decoded_bytes.decode('utf-8')
+                                message['body'] += decoded_message
+                    else:       
+                        if 'data' in part['body']:
                             decoded_bytes = base64.urlsafe_b64decode(
-                                ppart['body']['data'])
+                                part['body']['data'])
                             decoded_message = decoded_bytes.decode('utf-8')
                             message['body'] += decoded_message
-                else:       
-                    if 'data' in part['body']:
-                        decoded_bytes = base64.urlsafe_b64decode(
-                            part['body']['data'])
-                        decoded_message = decoded_bytes.decode('utf-8')
-                        message['body'] += decoded_message
+            
+            else:
+                if 'data' in  message_detail['payload']['body']:
+                    decoded_bytes = base64.urlsafe_b64decode(
+                        message_detail['payload']['body']['data'])
+                    decoded_message = decoded_bytes.decode('utf-8')
+                    message['body'] += decoded_message
             messages.append(message)
         return messages
-    except HttpError as error:
-        # TODO(developer) - Handle errors from gmail API.
-        print(f'An error occurred: {error}')
+    except Exception as e:
+        print(f'An error occurred: {e}')
+        return e
 
 @app.get("/messages", tags=['Get Messages List'])
 def receive_email():
@@ -122,7 +131,6 @@ def receive_email():
         response_json = {"messages": messages}
         return JSONResponse(status_code=200, content=response_json)
     except Exception as e:
-        print(e)
         return JSONResponse(status_code=500, content={'message': 'internal server error.'})
 
 @app.post("/messages/send", tags=['Send Message'])
