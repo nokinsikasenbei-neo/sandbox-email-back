@@ -1,149 +1,55 @@
-from webbrowser import get
 from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import JSONResponse
-# from pydantic import BaseModel
-from typing import List
-import os.path
-import base64
+from fastapi.responses import JSONResponse, FileResponse
+from gmail import get_service, get_message_list, get_message
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+# from pydantic import BaseModel
+import requests
+from typing import List
 
 app = FastAPI()
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-FILE_STORAGE = './storage/'
 
-"""
-サンドボックス環境で添付ファイルを展開する
-"""
-def sandbox():
-    return "ok"
-
-"""
-gmail apiを使用するためのserviceインスタンスを作成
-"""
-def get_service():
-    creds = None
-    service = None
-    try:
-        if os.path.exists('token.json'):
-            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                return None
-        service = build('gmail', 'v1', credentials=creds)
-        return service
-    except Exception as e:
-        print(e)
-        return None
-
-"""
-gmail apiを用いてメールを一括取得
-"""
-def get_mesage_list(service, user_id: str = 'me'):
-    messages = []
-    try:
-        # Call the Gmail API
-        message_ids = service.users().messages().list(userId=user_id).execute()
-        for message_id in message_ids["messages"]:
-            message = {}
-            message['id'] = message_id['id']
-            message_detail = service.users().messages().get(userId=user_id, id=message_id["id"]).execute()
-            headers = message_detail['payload']['headers']
-            
-            for d in headers:
-                if d['name'] == 'Subject':
-                    message['subject'] = d['value']
-                if d['name'] == 'From':
-                    message['from'] = d['value']
-                    
-            message['body'] = ""
-            message['attachment'] = ""
-            
-            if message_detail['payload'].get('parts') != None:
-                for part in message_detail['payload']['parts']:
-                    # ファイルが添付されている場合の処理
-                    if part['filename']:
-                        message['attachment'] = part['filename']
-                        if 'data' in part['body']:
-                            data=part['body']['data']
-                        else:
-                            att_id=part['body']['attachmentId']
-                            att=service.users().messages().attachments().get(userId=user_id, messageId=message_id,id=att_id).execute()
-                            data=att['data']
-                        file_data = base64.urlsafe_b64decode(data.encode('utf-8'))
-                        path = FILE_STORAGE + part['filename']
-                        
-                        with open(path, 'wb') as f:
-                            f.write(file_data)
-                
-                    if part['mimeType'] == 'multipart/alternative':
-                        for ppart in part['parts']:
-                            if 'data' in ppart['body']:
-                                decoded_bytes = base64.urlsafe_b64decode(
-                                    ppart['body']['data'])
-                                decoded_message = decoded_bytes.decode('utf-8')
-                                message['body'] += decoded_message
-                    else:       
-                        if 'data' in part['body']:
-                            decoded_bytes = base64.urlsafe_b64decode(
-                                part['body']['data'])
-                            decoded_message = decoded_bytes.decode('utf-8')
-                            message['body'] += decoded_message
-            
-            else:
-                if 'data' in  message_detail['payload']['body']:
-                    decoded_bytes = base64.urlsafe_b64decode(
-                        message_detail['payload']['body']['data'])
-                    decoded_message = decoded_bytes.decode('utf-8')
-                    message['body'] += decoded_message
-            messages.append(message)
-        return messages
-    except Exception as e:
-        print(f'An error occurred: {e}')
-        return e
+SANDBOX_ENDPOINT = 'http://sandbox:9000/convert'
 
 @app.get("/messages", tags=['Get Messages List'])
-def receive_email():
-    """
-    Get Messages List
-    
-    Request Params
-    - None
-    
-    Response Params
-    
-    以下のリスト
-    - raw: base64エンコードしたメールオブジェクト
-    - file: 添付ファイル
-    
-    """
+def messages():
     try:
         service = get_service()
         if service == None:
-            return JSONResponse(status_code=400, content={'message': 'please issue oauth token.'})
-        messages = get_mesage_list(service)
+            return JSONResponse(status_code=400, content={'error': 'please issue oauth token.'})
+        messages = get_message_list(service)
         response_json = {"messages": messages}
         return JSONResponse(status_code=200, content=response_json)
     except Exception as e:
+        print(e)
+        return JSONResponse(status_code=500, content={'error': 'internal server error.'})
+
+@app.get("/message/{msg_id}", tags=['Get Message'])
+def message(msg_id: str):
+    try:
+        service = get_service()
+        if service == None:
+            return JSONResponse(status_code=400, content={'error': 'please issue oauth token.'})
+        message = get_message(service, msg_id)
+        attachment = message.get('attachment')
+        if attachment != '':
+            res = requests.post(SANDBOX_ENDPOINT, json={'filename': attachment}) # sandbox環境にファイルのコンパートをリクエスト
+            if res.status_code != 200:
+                return JSONResponse(status_code=500, content={'error': 'internal server error.'})
+        message['converted'] = attachment.replace(attachment[attachment.find('.'):], '.pdf')
+        response_json = {"message": message}
+        return JSONResponse(status_code=200, content=response_json)
+    except Exception as e:
+        print(e)
         return JSONResponse(status_code=500, content={'message': 'internal server error.'})
+
+@app.get("/file", tags=['Get File'])
+def file(name: str):
+    # filename validation
+    for char in name:
+        if (char.isalnum() == False) and (char != '.'):
+            return JSONResponse(status_code=400, content={'error': 'invalid request.'})
+    return FileResponse(path=f"/var/public/converted/{name}")
 
 @app.post("/messages/send", tags=['Send Message'])
 def send_email(raw: str, file: UploadFile = File(...)):
-    """
-    Send Message
-    
-    Request Params
-    - raw: base64エンコードしたメールオブジェクト
-    - file: 添付ファイル
-    
-    Response Params
-    - None
-    
-    """
     return JSONResponse(status_code=200)

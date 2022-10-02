@@ -1,14 +1,14 @@
 FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8
 
-RUN adduser --disabled-password --gecos "" app
+# RUN adduser --disabled-password --gecos "" app
 
 WORKDIR /app
 COPY . .
 
-RUN chown -R root:app .
-RUN mkdir /var/public
-RUN chown -R root:app /var/public
-RUN chmod 771 /var/public
-RUN pip install -r requirements.txt
+RUN mkdir -p /var/public && \
+    mkdir -p /var/public/attached && \
+    mkdir -p /var/public/converted && \
+    chmod -R 771 /var/public && \
+    pip install -r requirements.txt
 
-USER app
+# USER app
