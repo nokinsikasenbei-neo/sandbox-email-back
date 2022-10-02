@@ -23,6 +23,16 @@ services:
       - code_share:/var/public
     restart: always
 
+  url:
+    tty: true
+    build:
+      context: ./url
+      dockerfile: Dockerfile
+    ports:
+      - 10000:10000
+    volumes:
+      - ./url:/url
+    restart: always
+
 volumes:
   code_share:
-    
