@@ -9,6 +9,7 @@ services:
     ports:
       - 8000:80
     volumes:
+      - ./app:/app
       - code_share:/var/public
     restart: always
   
@@ -20,6 +21,7 @@ services:
     ports:
       - 9000:9000
     volumes:
+      - ./sandbox:/sandbox
       - code_share:/var/public
     restart: always
 

@@ -10,3 +10,5 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4EB27DB2A3B88B8B &&
     apt install dpkg && \
     dpkg -i ./DEBS/*.deb && \
     pip install -r requirements.txt
+
+ENTRYPOINT [ "python3", "main.py" ]
