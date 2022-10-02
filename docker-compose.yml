@@ -9,7 +9,7 @@ services:
     ports:
       - 8000:80
     volumes:
-      - ./app:/app
+      - code_share:/var/public
     restart: always
   
   sandbox:
@@ -18,8 +18,11 @@ services:
       context: ./sandbox
       dockerfile: Dockerfile
     ports:
-      - 6080:80
+      - 9000:9000
     volumes:
-      - /dev/shm:/dev/shm
+      - code_share:/var/public
     restart: always
+
+volumes:
+  code_share:
     
