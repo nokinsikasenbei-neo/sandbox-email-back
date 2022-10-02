@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import keras
+import tensorflow as tf
 import pandas as pd
 import sys
 from urllib.parse import urlparse
@@ -71,7 +71,8 @@ def urldet(url):
             return 1
     urldata['use_of_ip'] = urldata['url'].apply(lambda i: having_ip_address(i))
 
-    model = keras.models.load_model('./deturl_model.h5')
+    model = tf.keras.models.load_model('./deturl_model.h5')
+    #model = tf.model.load_weights('./deturl_model.h5')
 
     data = np.expand_dims(urldata.values[0, 1:], 0).astype(np.float32)
 
