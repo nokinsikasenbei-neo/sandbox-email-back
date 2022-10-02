@@ -35,7 +35,11 @@ def message(msg_id: str):
             res = requests.post(SANDBOX_ENDPOINT, json={'filename': attachment}) # sandbox環境にファイルのコンパートをリクエスト
             if res.status_code != 200:
                 return JSONResponse(status_code=500, content={'error': 'internal server error.'})
-        message['converted'] = attachment.replace(attachment[attachment.find('.'):], '.pdf')
+        idx = attachment.find('.')
+        if idx == -1:
+            message['converted'] = ''
+        else:
+            message['converted'] = attachment.replace(attachment[idx:], '.pdf')
         response_json = {"message": message}
         return JSONResponse(status_code=200, content=response_json)
     except Exception as e:
