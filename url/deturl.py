@@ -85,5 +85,3 @@ def urldet(url):
         return 0 
     else:
         return 1
-
-print(urldet("https://faaef.a/faefa/"))
