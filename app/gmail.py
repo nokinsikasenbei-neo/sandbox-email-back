@@ -49,6 +49,8 @@ def get_message_list(service, user_id: str = 'me'):
                     message['subject'] = d['value']
                 if d['name'] == 'From':
                     message['from'] = d['value']
+                if d['name'] == 'Date':
+                    message['date'] = d['value']
                     
             message['body'] = ""
             message['attachment'] = ""
@@ -116,6 +118,8 @@ def get_message(service, msg_id: str, user_id: str = 'me'):
                 message['subject'] = d['value']
             if d['name'] == 'From':
                 message['from'] = d['value']
+            if d['name'] == 'Date':
+                message['date'] = d['value']
                 
         message['body'] = ""
         message['attachment'] = ""
