@@ -15,6 +15,9 @@ def convert():
         data = request.get_json()
         filename = data.get("filename")
         print('filename:', filename)
+        if filename == '' or filename == None:
+            return Response(response=json.dumps({'error': 'invalid request'}), status=400)
+        
         for char in filename:
             if (char.isalnum() == False) and (char != '.'):
                 print("char:", char)
