@@ -73,10 +73,14 @@ def get_message_list(service, user_id: str = 'me'):
                     if part['mimeType'] == 'multipart/alternative':
                         for ppart in part['parts']:
                             if 'data' in ppart['body']:
+                                if ppart['mimeType'] == 'text/html':
+                                    continue
                                 decoded_bytes = base64.urlsafe_b64decode(
                                     ppart['body']['data'])
                                 decoded_message = decoded_bytes.decode('utf-8')
                                 message['body'] += decoded_message
+                    elif part['mimeType'] == 'text/html':
+                        continue
                     else:       
                         if 'data' in part['body']:
                             decoded_bytes = base64.urlsafe_b64decode(
@@ -86,6 +90,8 @@ def get_message_list(service, user_id: str = 'me'):
             
             else:
                 if 'data' in  message_detail['payload']['body']:
+                    if message_detail['payload']['mimeType'] == 'text/html':
+                        continue
                     decoded_bytes = base64.urlsafe_b64decode(
                         message_detail['payload']['body']['data'])
                     decoded_message = decoded_bytes.decode('utf-8')
@@ -134,10 +140,14 @@ def get_message(service, msg_id: str, user_id: str = 'me'):
                 if part['mimeType'] == 'multipart/alternative':
                     for ppart in part['parts']:
                         if 'data' in ppart['body']:
+                            if ppart['mimeType'] == 'text/html':
+                                continue
                             decoded_bytes = base64.urlsafe_b64decode(
                                 ppart['body']['data'])
                             decoded_message = decoded_bytes.decode('utf-8')
                             message['body'] += decoded_message
+                elif part['mimeType'] == 'text/html':
+                    continue
                 else:       
                     if 'data' in part['body']:
                         decoded_bytes = base64.urlsafe_b64decode(
@@ -147,10 +157,11 @@ def get_message(service, msg_id: str, user_id: str = 'me'):
         
         else:
             if 'data' in  message_detail['payload']['body']:
-                decoded_bytes = base64.urlsafe_b64decode(
-                    message_detail['payload']['body']['data'])
-                decoded_message = decoded_bytes.decode('utf-8')
-                message['body'] += decoded_message
+                if message_detail['payload']['mimeType'] != 'text/html':
+                    decoded_bytes = base64.urlsafe_b64decode(
+                        message_detail['payload']['body']['data'])
+                    decoded_message = decoded_bytes.decode('utf-8')
+                    message['body'] += decoded_message
         return message
     except Exception as e:
         print(f'An error occurred: {e}')
