@@ -19,6 +19,38 @@ def messages():
         if service == None:
             return JSONResponse(status_code=400, content={'error': 'please issue oauth token.'})
         messages = get_message_list(service)
+        for message in messages:
+            # 添付ファイルの変換
+            attachment = message.get('attachment')
+            if attachment != '' and attachment != None:
+                res = requests.post(SANDBOX_ENDPOINT, json={'filename': attachment}) # sandbox環境にファイルのコンパートをリクエスト
+                if res.status_code != 200:
+                    return JSONResponse(status_code=500, content={'error': 'internal server error.'})
+            idx = attachment.find('.')
+            if idx == -1:
+                message['converted'] = ''
+            else:
+                message['converted'] = attachment.replace(attachment[idx:], '.pdf')
+        
+            # URLの判定       
+            body = message['body']
+            http_pattern = "http?://[\w/:%#\$&\?\(\)~\.=\+\-]+"
+            https_pattern = "https?://[\w/:%#\$&\?\(\)~\.=\+\-]+"
+            http_url_list = re.findall(http_pattern, body)
+            https_url_list = re.findall(https_pattern, body)
+            url_list = http_url_list + https_url_list
+            
+            results = []
+            if len(url_list) > 0:
+                res = requests.post(URL_ENDPOINT, json={'url_list': url_list})
+                results = res.json()['results']
+                
+            url_results = []
+            for (url, result) in zip(url_list, results):
+                is_danger = True if result else False
+                url_results.append({'value': url, "is_danger": is_danger})
+            message['url_results'] = url_results
+            
         response_json = {"messages": messages}
         return JSONResponse(status_code=200, content=response_json)
     except Exception as e:
