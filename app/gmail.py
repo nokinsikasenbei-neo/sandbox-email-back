@@ -60,17 +60,17 @@ def get_message_list(service, user_id: str = 'me'):
                     # ファイルが添付されている場合の処理
                     if part['filename']:
                         message['attachment'] = part['filename']
-                        # if 'data' in part['body']:
-                        #     data=part['body']['data']
-                        # else:
-                        #     att_id=part['body']['attachmentId']
-                        #     att=service.users().messages().attachments().get(userId=user_id, messageId=message_id,id=att_id).execute()
-                        #     data=att['data']
-                        # file_data = base64.urlsafe_b64decode(data.encode('utf-8'))
-                        # path = FILE_STORAGE + part['filename']
+                        if 'data' in part['body']:
+                            data=part['body']['data']
+                        else:
+                            att_id=part['body']['attachmentId']
+                            att=service.users().messages().attachments().get(userId=user_id, messageId=message_id,id=att_id).execute()
+                            data=att['data']
+                        file_data = base64.urlsafe_b64decode(data.encode('utf-8'))
+                        path = FILE_STORAGE + part['filename']
                         
-                        # with open(path, 'wb') as f:
-                        #     f.write(file_data)
+                        with open(path, 'wb') as f:
+                            f.write(file_data)
                 
                     if part['mimeType'] == 'multipart/alternative':
                         for ppart in part['parts']:
