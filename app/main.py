@@ -1,5 +1,7 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 from gmail import get_service, get_message_list, get_message
 
 # from pydantic import BaseModel
@@ -8,6 +10,19 @@ import re
 from typing import List
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 SANDBOX_ENDPOINT = 'http://sandbox:9000/convert'
 URL_ENDPOINT = 'http://url:10000/url'
