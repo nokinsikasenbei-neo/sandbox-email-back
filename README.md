@@ -25,7 +25,7 @@ $ git clone https://github.com/nokinsikasenbei-neo/sandbox-email-back.git
 4. 以下のコマンドを実行すると、ブラウザでGoogleアカウントでログインするよう求められる。
 ```
 $ cd ./sandbox-email-back/app
-$ python ./sandbox-email-back/app/authorize.py
+$ python authorize.py
 ```
 ログインが完了すると、`The authentication flow has completed. You may close this window.`と表示される。<br>※ 受信メール件数が少ないアカウントでないと、テストするのが難しい。
 
